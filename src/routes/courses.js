@@ -28,9 +28,14 @@ endpoint.get("/", async (req, res) => {
         map.push({
           num: c.period,
           courses: [curso],
+          optatives: [],
         });
       } else {
-        map[periodo].courses.push(curso);
+        if (curso.tipo === "OPTATIVA") {
+          map[periodo].optatives.push(curso);
+        } else {
+          map[periodo].courses.push(curso);
+        }
       }
     });
 
