@@ -96,6 +96,7 @@ endpoint.post("/:boleta", async (req, res) => {
     ss_time,
     pp_time,
     w_time,
+    list_courses,
   } = req.body;
 
   try {
@@ -108,26 +109,17 @@ endpoint.post("/:boleta", async (req, res) => {
       );
     // Connection is automatically released when query resolves
 
-    res.status(200).json({
-      boleta,
-      carga,
-      turno,
-      cultural_act,
-      deportive_act,
-      free_time,
-      ss_time,
-      pp_time,
-      w_time,
-    });
-
-
-  } catch (err) {
-    res.status(404).json({
-      err,
-    });
-  }
-
-  
+  res.status(200).json({
+    boleta,
+    carga,
+    turno,
+    cultural_act,
+    deportive_act,
+    free_time,
+    ss_time,
+    pp_time,
+    w_time,
+  });
 });
 
 module.exports = endpoint;
