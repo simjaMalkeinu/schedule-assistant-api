@@ -105,21 +105,28 @@ endpoint.post("/:boleta", async (req, res) => {
       .promise()
       .query(
         "select s.*, g.name as `group`, concat(t.name, ' ', t.ape_pat,' ',ape_mat) as profesor, c.name as asignatura from schedules s, `groups` g, teachers t, courses c where (s.group_idgroup = g.idgroup AND s.course_idCourse = c.idcourse AND s.teacher_idTeacher = t.idteacher) AND s.course_idCourse in (?);",
-        []
+        [list_courses]
       );
     // Connection is automatically released when query resolves
 
-  res.status(200).json({
-    boleta,
-    carga,
-    turno,
-    cultural_act,
-    deportive_act,
-    free_time,
-    ss_time,
-    pp_time,
-    w_time,
-  });
+    res.status(200).json({
+      boleta,
+      carga,
+      turno,
+      cultural_act,
+      deportive_act,
+      free_time,
+      ss_time,
+      pp_time,
+      w_time,
+      list_courses,
+      rows,
+    });
+  } catch (err) {
+    res.status(404).json({
+      err,
+    });
+  }
 });
 
 module.exports = endpoint;
