@@ -96,6 +96,7 @@ endpoint.post("/:boleta", async (req, res) => {
     ss_time,
     pp_time,
     w_time,
+    list_courses,
   } = req.body;
 
   res.status(200).json({
@@ -108,6 +109,7 @@ endpoint.post("/:boleta", async (req, res) => {
     ss_time,
     pp_time,
     w_time,
+    list_courses
   });
 });
 
