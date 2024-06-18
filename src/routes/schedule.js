@@ -4,6 +4,8 @@ const { pool } = require("../database");
 
 const endpoint = Router();
 
+const TOTAL_CREDITS = 362;
+
 endpoint.get("/:boleta", async (req, res) => {
   const { boleta } = req.params;
 
@@ -20,6 +22,7 @@ endpoint.get("/:boleta", async (req, res) => {
     const map = [];
     let credits = 0;
     let student_state = "REGULAR";
+    let min_period = 0;
 
     rows.map((c) => {
       const periodo = map.findIndex((p) => p.num === c.period);
@@ -37,10 +40,18 @@ endpoint.get("/:boleta", async (req, res) => {
 
       if (c.state === 1) {
         credits += c.credits;
+        if (c.period > min_period && student_state === "REGULAR") {
+          min_period = c.period;
+        }
       }
 
       if (c.state === 0) {
         student_state = "IRREGULAR";
+        if (c.period < min_period && min_period !== 0) {
+          min_period = c.period;
+        } else if (min_period === 0) {
+          min_period = c.period;
+        }
       }
     });
 
@@ -55,17 +66,49 @@ endpoint.get("/:boleta", async (req, res) => {
       map[c.period - 1].courses.push(c);
     });
 
+    const percentage_credits = ((credits / TOTAL_CREDITS) * 100).toFixed(2);
+
     res.status(200).json({
       kardex: map.reverse(),
       credits,
-      percentage_credits: ((credits / 362) * 100).toFixed(2),
+      percentage_credits,
       student_state,
+      social_service: percentage_credits > 75 ? true : false,
+      practice_program: percentage_credits > 50 ? true : false,
+      min_period,
+      max_period: min_period + 2,
     });
   } catch (err) {
     res.status(404).json({
       err,
     });
   }
+});
+
+endpoint.post("/:boleta", async (req, res) => {
+  const { boleta } = req.params;
+  const {
+    carga,
+    turno,
+    cultural_act,
+    deportive_act,
+    free_time,
+    ss_time,
+    pp_time,
+    w_time,
+  } = req.body;
+
+  res.status(200).json({
+    boleta,
+    carga,
+    turno,
+    cultural_act,
+    deportive_act,
+    free_time,
+    ss_time,
+    pp_time,
+    w_time,
+  });
 });
 
 module.exports = endpoint;
