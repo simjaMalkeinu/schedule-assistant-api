@@ -146,14 +146,13 @@ endpoint.post("/:boleta", async (req, res) => {
       schedules = filtrarDatos(schedules, w_time, list_courses.prioritary);
     }
 
-    // schedules = groupByCourseId(schedules);
-
-    const schedulesGenerated = getValidCombinations(schedules, carga, list_courses.prioritary)
-    // console.log(getValidCombinations(schedules, 2));
-    // console.log(groupedByCourseId);
+    schedules = groupByCourseId(schedules);
+    const horarios = generarHorarios(schedules, list_courses.prioritary, carga, 5);
 
     res.status(200).json({
-      schedulesGenerated
+      schedules,
+      horarios,
+      num: horarios.length
     });
   } catch (err) {
     res.status(404).json({
@@ -161,6 +160,17 @@ endpoint.post("/:boleta", async (req, res) => {
     });
   }
 });
+
+function groupByCourseId(schedules) {
+  return schedules.reduce((acc, schedule) => {
+      const { course_idCourse } = schedule;
+      if (!acc[course_idCourse]) {
+          acc[course_idCourse] = [];
+      }
+      acc[course_idCourse].push(schedule);
+      return acc;
+  }, {});
+}
 
 function checkTimeOverlap(schedule1, schedule2) {
   const days = ["monday", "tuesday", "wednesday", "thursday", "friday"];
@@ -203,36 +213,117 @@ function schedulesOverlap(schedules) {
   return false;
 }
 
-function generateCombinations(arr, size, priorityCourses) {
-  const result = [];
+// function generarHorarios(cursosAgrupados) {
+//   const combinacionesValidas = [];
 
-  function helper(temp, start) {
-    if (temp.length === size) {
-      if (priorityCourses.every(course => temp.some(schedule => schedule.course_idCourse === course))) {
-        result.push([...temp]);
-      }
-      return;
-    }
+//   function backtrack(horariosSeleccionados, index) {
+//       if (index === Object.keys(cursosAgrupados).length) {
+//           combinacionesValidas.push([...horariosSeleccionados]);
+//           return;
+//       }
 
-    for (let i = start; i < arr.length; i++) {
-      if (temp.some(schedule => schedule.course_idCourse === arr[i].course_idCourse)) {
-        continue; // Evita cursos repetidos en la misma combinación
+//       const courseId = Object.keys(cursosAgrupados)[index];
+//       const horarios = cursosAgrupados[courseId];
+
+//       for (let horario of horarios) {
+//           let traslape = false;
+//           for (let seleccionado of horariosSeleccionados) {
+//               if (schedulesOverlap(seleccionado, horario)) {
+//                   traslape = true;
+//                   break;
+//               }
+//           }
+//           if (!traslape) {
+//               horariosSeleccionados.push(horario);
+//               backtrack(horariosSeleccionados, index + 1);
+//               horariosSeleccionados.pop();
+//           }
+//       }
+//   }
+
+//   backtrack([], 0);
+//   return combinacionesValidas;
+// }
+
+function generarHorarios(cursosAgrupados, cursosPrioritarios, maxCursos, maxCombinaciones) {
+  const combinacionesValidas = [];
+  let combinacionesEncontradas = 0;
+
+  function backtrack(horariosSeleccionados, index, cursosSeleccionados) {
+      if (combinacionesEncontradas >= maxCombinaciones) {
+          return;
       }
-      temp.push(arr[i]);
-      helper(temp, i + 1);
-      temp.pop();
-    }
+
+      if (horariosSeleccionados.length === maxCursos) {
+          combinacionesValidas.push([...horariosSeleccionados]);
+          combinacionesEncontradas++;
+          return;
+      }
+
+      if (index === Object.keys(cursosAgrupados).length) {
+          combinacionesValidas.push([...horariosSeleccionados]);
+          combinacionesEncontradas++;
+          return;
+      }
+
+      const courseId = Object.keys(cursosAgrupados)[index];
+      const horarios = cursosAgrupados[courseId];
+
+      for (let horario of horarios) {
+          if (cursosSeleccionados.has(horario.course_idCourse)) {
+              continue;
+          }
+          let traslape = false;
+          for (let seleccionado of horariosSeleccionados) {
+              if (schedulesOverlap(seleccionado, horario)) {
+                  traslape = true;
+                  break;
+              }
+          }
+          if (!traslape) {
+              horariosSeleccionados.push(horario);
+              cursosSeleccionados.add(horario.course_idCourse);
+              backtrack(horariosSeleccionados, index + 1, cursosSeleccionados);
+              horariosSeleccionados.pop();
+              cursosSeleccionados.delete(horario.course_idCourse);
+          }
+      }
+      backtrack(horariosSeleccionados, index + 1, cursosSeleccionados); // Probar la siguiente materia
   }
 
-  helper([], 0);
-  return result;
+  // Primero, tratar de seleccionar los cursos prioritarios
+  let prioridadSeleccionados = [];
+  let cursosSeleccionados = new Set();
+  for (let courseId of cursosPrioritarios) {
+      if (cursosAgrupados[courseId]) {
+          const horarios = cursosAgrupados[courseId];
+          let agregado = false;
+          for (let horario of horarios) {
+              let traslape = false;
+              for (let seleccionado of prioridadSeleccionados) {
+                  if (schedulesOverlap(seleccionado, horario)) {
+                      traslape = true;
+                      break;
+                  }
+              }
+              if (!traslape) {
+                  prioridadSeleccionados.push(horario);
+                  cursosSeleccionados.add(horario.course_idCourse);
+                  agregado = true;
+                  break;
+              }
+          }
+          if (!agregado) {
+              console.log(`No se pudo agregar el curso prioritario con ID: ${courseId}`);
+          }
+      }
+  }
+
+  // Continuar con los cursos no prioritarios
+  backtrack(prioridadSeleccionados, 0, cursosSeleccionados);
+  return combinacionesValidas;
 }
 
-function getValidCombinations(schedules, combinationSize, priorityCourses) {
-  let allCombinations = generateCombinations(schedules, combinationSize, priorityCourses);
-  let validCombinations = allCombinations.filter(combination => !schedulesOverlap(combination));
-  return validCombinations;
-}
 
 function filtrarDatos(arreglo, valor, prioritary) {
   return arreglo.filter((s) => {
