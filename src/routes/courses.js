@@ -68,4 +68,57 @@ endpoint.get("/:boleta", async (req, res) => {
   }
 });
 
+endpoint.put("/update/:boleta", async (req, res) => {
+  const { boleta } = req.params;
+  const { curso, state } = req.body;
+
+  try {
+    const [result] = await pool
+      .promise()
+      .query(
+        "SELECT * FROM student_courses WHERE student_idStudent = ? AND course_idCourse = ?",
+        [boleta, curso]
+      );
+
+    console.log(result);
+
+    if (result.length === 0 && state !== null) {
+      const [rows] = await pool
+        .promise()
+        .query(
+          "INSERT INTO student_courses (student_idStudent, course_idCourse, state) VALUES (?, ?, ?)",
+          [boleta, curso, state]
+        );
+      console.log(rows);
+      res.status(200).json({
+        msg: "insertado",
+      });
+    } else {
+      const query =
+        state === null
+          ? "DELETE FROM student_courses WHERE student_idStudent = ? AND course_idCourse = ?"
+          : "UPDATE student_courses SET state = ? WHERE student_idStudent = ? AND course_idCourse = ?";
+      if (state === null) {
+        const [rows] = await pool.promise().query(query, [boleta, curso]);
+        console.log(rows);
+        res.status(200).json({
+          msg: "eliminado",
+        });
+      } else {
+        const [rows] = await pool
+          .promise()
+          .query(query, [state, boleta, curso]);
+        console.log(rows);
+        res.status(200).json({
+          msg: "actualizado",
+        });
+      }
+    }
+  } catch (err) {
+    res.status(404).json({
+      err,
+    });
+  }
+});
+
 module.exports = endpoint;
