@@ -111,7 +111,7 @@ endpoint.post("/:boleta", async (req, res) => {
 
     let schedules = [];
 
-    if (turno !== "MX") {
+    if (turno !== "MX" && turno !== null) {
       schedules = rows.filter(
         (s) =>
           s.shift === turno ||
@@ -245,7 +245,7 @@ function schedulesOverlap(schedules) {
 //   return combinacionesValidas;
 // }
 
-function generarHorarios(cursosAgrupados, cursosPrioritarios, maxCursos, maxCombinaciones) {
+function generarHorarios(cursosAgrupados, cursosPrioritarios, maxCursos = 8, maxCombinaciones) {
   const combinacionesValidas = [];
   let combinacionesEncontradas = 0;
 
