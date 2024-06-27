@@ -6,6 +6,7 @@ const notFound = require("./middleware/notFound");
 // import loginRoutes from './routes/LogIn.routes.js'
 const courses = require("./routes/courses");
 const schedule = require("./routes/schedule");
+const users = require("./routes/users");
 
 // Initializations
 const app = express();
@@ -19,6 +20,7 @@ app.use(cors());
 // app.use('/', indexRoutes);
 app.use("/courses", courses);
 app.use("/schedule", schedule);
+app.use("/users", users);
 
 app.get("/", (request, response) => {
   console.log(request.ip);
